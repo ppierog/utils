@@ -1,0 +1,8 @@
+nasm -F dwarf -g -f elf64 strings.asm
+nasm -F dwarf -g -f elf64 test.asm
+
+ld -o test test.o strings.o -lc -I /usr/lib64/ld-linux-x86-64.so.2
+rm -Rf out
+mkdir -p out/obj
+mv test out
+mv *.o out/obj
