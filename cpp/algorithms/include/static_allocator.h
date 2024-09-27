@@ -3,38 +3,47 @@
 #include <stdexcept>
 #include <bitset>
 #include <cstring>
-
+#include <cassert>
 namespace utils
 {
 
     template <size_t ObjectSize, size_t NumObjects>
     struct StaticAllocator
     {
-        static constexpr size_t objectSize = ObjectSize;
-        static constexpr size_t elementSize = objectSize / sizeof(int) + objectSize % sizeof(int) ? 1 : 0;
-        static constexpr size_t numObjects = NumObjects;
-        static constexpr size_t memoryLength = elementSize * numObjects;
+        static constexpr size_t const &objectSize = ObjectSize;
+        static constexpr size_t const &elementSize = (ObjectSize / sizeof(int)) * sizeof(int) + sizeof(int) * (bool)(ObjectSize % sizeof(int));
+        static constexpr size_t const &numObjects = NumObjects;
+        static constexpr size_t const &memoryLength = elementSize * numObjects;
 
-        static_assert(objectSize >= sizeof(int));
         static_assert(numObjects > 0);
+        static_assert(objectSize >= sizeof(int));
 
-        constexpr StaticAllocator() = default;
-        constexpr StaticAllocator(const StaticAllocator &) = delete;
-        constexpr StaticAllocator &operator=(const StaticAllocator &) = delete;
+        StaticAllocator() = default;
+        StaticAllocator(const StaticAllocator &) = delete;
+        StaticAllocator &operator=(const StaticAllocator &) = delete;
 
         void *allocate()
         {
-            if (freeSlots)
-            {
+            if (0 == freeSlots())
+                return nullptr;
 
-                unsigned int slot = memoryUsage.find_first_unset();
-                memoryUsage.set(slot);
-                numAllocs++;
-                off_t offset = slot + elementSize;
-                std::memset(startMemory + offset, 0, elementSize);
-                return startMemory + offset;
-            }
-            return nullptr;
+            auto findFirstUnset = [](std::bitset<numObjects> &bits)
+            {
+                for (size_t i = 0; i < bits.size(); ++i)
+                {
+                    if (!bits.test(i))
+                        return i;
+                }
+                assert(nullptr == "Thera are free slots but not found in btset");
+            };
+
+            unsigned int slot = findFirstUnset(memoryUsage);
+            memoryUsage.set(slot);
+            numAllocs++;
+            off_t offset = slot * elementSize;
+            char *memory = (char *)startMemory + offset;
+            std::memset(memory, 0, elementSize);
+            return memory;
         }
 
         void deallocate(void *ptr)
@@ -46,12 +55,7 @@ namespace utils
 
             size_t slot = ((size_t)ptr - (size_t)memory) / elementSize;
 
-            if (slot >= numObjects)
-            {
-                throw std::invalid_argument("received ptr outside allocator");
-            }
-
-            if (memoryUsage.test(slot))
+            if (!memoryUsage.test(slot))
             {
                 throw std::invalid_argument("received ptr allready freed");
             }
@@ -79,13 +83,23 @@ namespace utils
             return numDeallocs;
         }
 
+        const void *const getStartMemory() const
+        {
+            return (const void *const)startMemory;
+        }
+
+        const void *const getEndMemory() const
+        {
+            return (const void *const)endMemory;
+        }
+
     private:
         size_t numAllocs{0};
         size_t numDeallocs{0};
 
         int memory[(elementSize * numObjects) / sizeof(int)];
         void *startMemory = memory;
-        void *endMemory = startMemory + memoryLength;
+        void *endMemory = (char *)startMemory + memoryLength;
         std::bitset<numObjects> memoryUsage;
     };
 
