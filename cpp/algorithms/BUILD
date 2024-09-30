@@ -4,14 +4,51 @@ cc_library(
     copts = ["-Ialgorithms/include"],
 )
 
+cc_library(
+    name = "bitset",
+    hdrs = ["include/bitset.h"],
+    copts = ["-Ialgorithms/include"],
+)
+
+cc_library(
+    name = "array",
+    hdrs = ["include/array.h"],
+    copts = ["-Ialgorithms/include"],
+)
+
+
 cc_test(
     name = "static-allocator-test",
     size = "small",
     srcs = ["test/static_allocator_test.cpp"],
-    copts = ["-Ialgorithms/include", "-g", "-O0"],
+    copts = ["-Ialgorithms/include", "-DENABLE_UTILS_EXCEPTIONS=1"],
     deps = [
         "@googletest//:gtest",
         "@googletest//:gtest_main",
         ":static-allocator",
+    ],
+)
+
+cc_test(
+    name = "bitset-test",
+    size = "small",
+    srcs = ["test/bitset_test.cpp"],
+    copts = ["-Ialgorithms/include", "-DUTILS_EXCEPTIONS=1"],
+    deps = [
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+        ":bitset",
+    ],
+)
+
+cc_test(
+    name = "array-test",
+    size = "small",
+    srcs = ["test/array_test.cpp"],
+    copts = ["-Ialgorithms/include", "-DUTILS_EXCEPTIONS=1"],
+    deps = [
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+        ":array",
     ],
 )

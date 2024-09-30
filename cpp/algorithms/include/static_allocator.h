@@ -1,14 +1,25 @@
 #pragma once
+
 #include <stddef.h>
 #include <stdexcept>
 #include <bitset>
 #include <cstring>
 #include <cassert>
+
+#ifdef ENABLE_UTILS_RUNTIME_CHECKS
+#ifndef REDZONE_SIZE
+#define REDZONE_SIZE 8
+#endif
+static_assert(REDZONE_SIZE == sizeof(int) * 2);
+static_assert(REDZONE_SIZE % (sizeof(int) * 2) == 0);
+#else
+#define REDZONE_SIZE 0
+#endif
+
 namespace utils
 {
-
     template <size_t ObjectSize, size_t NumObjects>
-    struct StaticAllocator
+    struct StaticMemoryProvideder
     {
         static constexpr size_t const &objectSize = ObjectSize;
         static constexpr size_t const &elementSize = (ObjectSize / sizeof(int)) * sizeof(int) + sizeof(int) * (bool)(ObjectSize % sizeof(int));
@@ -17,10 +28,28 @@ namespace utils
 
         static_assert(numObjects > 0);
         static_assert(objectSize >= sizeof(int));
+        static_assert(elementSize >= sizeof(int));
+        static_assert(0 == (elementSize % sizeof(int)));
 
-        StaticAllocator() = default;
-        StaticAllocator(const StaticAllocator &) = delete;
-        StaticAllocator &operator=(const StaticAllocator &) = delete;
+        char *getMemory()
+        {
+            return (char *)memory;
+        }
+        int memory[(elementSize / sizeof(int)) * numObjects];
+    };
+
+    template <size_t ObjectSize, size_t NumObjects, typename MemoryProvider>
+    struct BitsetAllocator
+    {
+        static constexpr size_t const &objectSize = ObjectSize;
+        static constexpr size_t const &redZoneSize = REDZONE_SIZE;
+        static constexpr size_t const &numObjects = NumObjects;
+        static constexpr size_t const &elementSize = MemoryProvider::elementSize;
+        static constexpr size_t const &memoryLength = MemoryProvider::memoryLength;
+
+        constexpr BitsetAllocator() = default;
+        constexpr BitsetAllocator(const BitsetAllocator &) = delete;
+        constexpr BitsetAllocator &operator=(const BitsetAllocator &) = delete;
 
         void *allocate()
         {
@@ -43,24 +72,49 @@ namespace utils
             off_t offset = slot * elementSize;
             char *memory = (char *)startMemory + offset;
             std::memset(memory, 0, elementSize);
-            return memory;
+#ifdef ENABLE_UTILS_RUNTIME_CHECKS
+            std::memset(memory, 0xdeadbeef, sizeof(int));
+            std::memset(memory + elementSize - sizeof(int), 0xdeadbeef, sizeof(int));
+#endif
+            return memory + redZoneSize / 2;
         }
 
-        void deallocate(void *ptr)
+        int deallocate(void *ptr)
         {
-            if (ptr < startMemory || ptr >= endMemory || ((size_t)ptr % elementSize != 0))
+            char *allocatedPtr = (char *)ptr - redZoneSize / 2;
+            if (allocatedPtr < startMemory || allocatedPtr >= endMemory ||
+                ((size_t)allocatedPtr % elementSize != 0))
             {
+#ifdef ENABLE_UTILS_EXCEPTIONS
                 throw std::invalid_argument("received ptr outside allocator");
+#endif
+                return -1;
             }
 
-            size_t slot = ((size_t)ptr - (size_t)memory) / elementSize;
+            size_t slot = ((size_t)allocatedPtr - (size_t)startMemory) / elementSize;
 
             if (!memoryUsage.test(slot))
             {
+#ifdef ENABLE_UTILS_EXCEPTIONS
                 throw std::invalid_argument("received ptr allready freed");
+#endif
+                return -1;
             }
+
+#ifdef ENABLE_UTILS_RUNTIME_CHECKS
+#warning "Fix This for redefined RED_ZONE"
+
+            if (*(int *)allocatedPtr != 0xdeadbeef ||
+                *(int *)(allocatedPtr + elemeentSize - sizeof(int)) != 0xdeadbeef)
+            {
+                assert(nullptr == "Memory Corruption detected in Static Allocator");
+            }
+#endif
+
             numDeallocs++;
             memoryUsage.reset(slot);
+
+            return 0;
         }
 
         size_t allocatedSlots() const
@@ -83,12 +137,12 @@ namespace utils
             return numDeallocs;
         }
 
-        const void *const getStartMemory() const
+        constexpr const void *const getStartMemory() const
         {
             return (const void *const)startMemory;
         }
 
-        const void *const getEndMemory() const
+        constexpr const void *const getEndMemory() const
         {
             return (const void *const)endMemory;
         }
@@ -97,34 +151,51 @@ namespace utils
         size_t numAllocs{0};
         size_t numDeallocs{0};
 
-        int memory[(elementSize * numObjects) / sizeof(int)];
-        void *startMemory = memory;
-        void *endMemory = (char *)startMemory + memoryLength;
+        MemoryProvider memoryProvider;
+
+        void *startMemory = memoryProvider.getMemory();
+        void *endMemory = (char *)startMemory + memoryProvider.memoryLength;
         std::bitset<numObjects> memoryUsage;
     };
 
-    template <typename T, size_t NumObjects>
-    struct StaticAllocatorPool
+    template <size_t ObjectSize, size_t NumObjects>
+    using StaticAllocator = BitsetAllocator<ObjectSize, NumObjects,
+                                            StaticMemoryProvideder<ObjectSize + REDZONE_SIZE, NumObjects>>;
+
+    template <typename T, size_t NumObjects, typename Allocator>
+    struct AllocatorPool
     {
-        constexpr StaticAllocatorPool() = default;
-        constexpr StaticAllocatorPool(const StaticAllocatorPool &) = delete;
-        constexpr StaticAllocatorPool &operator=(const StaticAllocatorPool &) = delete;
+        constexpr AllocatorPool() = default;
+        constexpr AllocatorPool(const AllocatorPool &) = delete;
+        constexpr AllocatorPool &operator=(const AllocatorPool &) = delete;
 
         T *allocate()
         {
             return static_cast<T *>(pool.allocate());
         }
 
+        template <typename... Types>
+        T *create(Types... args)
+        {
+            T *ret = static_cast<T *>(pool.allocate());
+            new (ret) T(&args...);
+            return ret;
+        }
+
         void deallocate(T *ptr)
         {
             pool.deallocate(ptr);
         }
-        const StaticAllocator<sizeof(T), NumObjects> &getAllocator() const
+        const Allocator &getAllocator() const
         {
             return pool;
         }
 
     private:
-        StaticAllocator<sizeof(T), NumObjects> pool;
+        Allocator pool;
     };
+
+    template <typename T, size_t NumObjects>
+    using StaticAllocatorPool = AllocatorPool<T, NumObjects, StaticAllocator<sizeof(T), NumObjects>>;
+
 } // namespace utils
