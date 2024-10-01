@@ -4,6 +4,8 @@ extern printf
 extern __itoa
 extern __strlen
 extern __strcat
+extern __strcmp
+extern __atoi
 
 section .rodata
   format1       db      "%s",0xA, 0x0
@@ -16,7 +18,9 @@ section .data
   sbuff       db      0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0
 
   tstring     db      "1234567890abcdef",0x0
-
+  tstring1     db     "abcdef",0x0
+  tstring2     db     "abcdeg",0x0
+  tstring3     db     "1234",0x0
 
 section .bss
 
@@ -60,6 +64,37 @@ _start:
     mov rsi, sbuff
     call printf
 
+    mov rdi, tstring1
+    mov rsi, tstring2
+    call __strcmp
+
+    mov rdi, format2
+    mov rsi, rax
+    call printf
+
+    mov rdi, tstring2
+    mov rsi, tstring1
+    call __strcmp
+
+    mov rdi, format2
+    mov rsi, rax
+    call printf
+
+    mov rdi, tstring2
+    mov rsi, tstring2
+    call __strcmp
+
+    mov rdi, format2
+    mov rsi, rax
+    call printf
+
+
+    mov rdi, tstring3
+    call __atoi
+
+    mov rdi, format2
+    mov rsi, rax
+    call printf
 
 
 
