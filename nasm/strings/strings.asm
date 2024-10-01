@@ -8,9 +8,11 @@ section .rodata
 
 section .text
 
-    global  __itoa
-    global  __strlen
-    global  __strcat
+    global __itoa
+    global __strlen
+    global __strcat
+    global __strcmp
+    global __atoi
 
 
 ; char * itoa( int value, char * str, int base );
@@ -150,6 +152,96 @@ __strcat :
     jne .loop_strln
 
 
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+
+; char * strcat ( char * first, const char * second );
+; rdi - dest string
+; rsi - src string
+__strcmp :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    ; code
+    dec rdi        ; prepare for loop
+    dec rsi         
+    mov ax, 0xFFFF 
+    
+    .loop_cmp:
+        mul ah
+        cmp ax, 0 ; check if end of string
+        je .end_string 
+        inc rdi
+        inc rsi
+        mov ah, byte [rdi]
+        mov al, byte [rsi]
+        cmp ah , al
+    je .loop_cmp
+    .end_string:
+    mov r15, 0 ;strings are equal
+    cmp ah, al
+    jl .end_le
+    jg .end_gt
+    jmp .end
+    .end_le:
+    mov r15,1
+    jmp .end
+    .end_gt:
+    mov r15, -1
+    
+    .end:
+    mov rax, r15
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+
+; int atoi ( char * str);
+; rdi - input string
+__atoi :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    push rdi
+    call __strlen
+    pop rdi
+    
+    ; code
+    mov rsi, rdi
+    add rdi, rax   ; prepare for loop
+    inc rdi
+    xor r15, r15   ; prepare for result
+    mov r8, 1      ; prepare for base 10
+    mov r9, 10
+
+    
+    .loop_atoi:
+        dec rdi
+        mov al, byte [rdi]
+        cmp al, 0       ; check if end of string
+        je .end_string
+        sub al, 0x30    ; ascii to int
+        and rax, 0xFF
+        mul r8
+        add r15, rax
+        mov rax, r8
+      
+        mul r9
+        mov r8, rax
+        cmp rdi, rsi
+
+    jne .loop_atoi
+
+    .end_string:
+    mov rax, r15
     ; end of code
     mov rsp, rbp  ; Clean up the base pointer
     pop rbp  ; Restore the base pointer
