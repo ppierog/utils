@@ -1,8 +1,4 @@
 #pragma once
-#include <stddef.h>
-#include <stdexcept>
-#include <bitset>
-#include <cstring>
 
 namespace utils
 {
@@ -19,21 +15,9 @@ namespace utils
         {
             return array[pos];
         }
+
+    private:
         T array[Size];
     };
-#if 0
-    template <typename T, size_t Size1, size_t Size2>
-    static Array<T, Size1 + Size2> MergeArray(const Array<T, Size1> &first, const Array<T, Size2> &second)
-    {
-        Array<T, Size1 + Size2> result;
-        return result;
-    }
-#endif
-    template <typename T, size_t... Sizes>
-    static Array<T, Size1 + Size2> MergeArray(const Array<T, Size1> &first, const Array<T, Size2> &second)
-    {
-        Array<T, Size1 + Size2> result;
-        return result;
-    }
 
 } // namespace utils

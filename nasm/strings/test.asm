@@ -6,10 +6,13 @@ extern __strlen
 extern __strcat
 extern __strcmp
 extern __atoi
+extern __tolower
+extern __toupper
 
 section .rodata
   format1       db      "%s",0xA, 0x0
   format2       db      "%d",0xA, 0x0
+  format3       db      "%c",0xA, 0x0
 
 
 section .data
@@ -96,6 +99,19 @@ _start:
     mov rsi, rax
     call printf
 
+    mov rdi, 'A'
+    call __tolower
+
+    mov rdi, format3
+    mov rsi, rax
+    call printf
+
+    mov rdi, 'a'
+    call __toupper
+
+    mov rdi, format3
+    mov rsi, rax
+    call printf
 
 
     mov     rbx, 0            ; exit -> first syscall argument: exit code

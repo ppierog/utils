@@ -13,6 +13,8 @@ section .text
     global __strcat
     global __strcmp
     global __atoi
+    global __toupper
+    global __tolower
 
 
 ; char * itoa( int value, char * str, int base );
@@ -169,13 +171,13 @@ __strcmp :
 
     ; code
     dec rdi        ; prepare for loop
-    dec rsi         
-    mov ax, 0xFFFF 
-    
+    dec rsi
+    mov ax, 0xFFFF
+
     .loop_cmp:
         mul ah
         cmp ax, 0 ; check if end of string
-        je .end_string 
+        je .end_string
         inc rdi
         inc rsi
         mov ah, byte [rdi]
@@ -193,7 +195,7 @@ __strcmp :
     jmp .end
     .end_gt:
     mov r15, -1
-    
+
     .end:
     mov rax, r15
     ; end of code
@@ -213,7 +215,7 @@ __atoi :
     push rdi
     call __strlen
     pop rdi
-    
+
     ; code
     mov rsi, rdi
     add rdi, rax   ; prepare for loop
@@ -222,7 +224,7 @@ __atoi :
     mov r8, 1      ; prepare for base 10
     mov r9, 10
 
-    
+
     .loop_atoi:
         dec rdi
         mov al, byte [rdi]
@@ -233,7 +235,7 @@ __atoi :
         mul r8
         add r15, rax
         mov rax, r8
-      
+
         mul r9
         mov r8, rax
         cmp rdi, rsi
@@ -242,6 +244,56 @@ __atoi :
 
     .end_string:
     mov rax, r15
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+; int toupper (int);
+; rdi - input character
+__toupper :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    ; code
+    ; 0x61(a), 0x7a(z)
+    and rdi, 0xFF
+    cmp rdi, 'a'
+    jl .no_action
+    cmp rdi, 'z'
+    jg .no_action
+    sub rdi, 0x20
+
+    .no_action:
+    mov rax, rdi
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+; int tolower (int);
+; rdi - input character
+__tolower :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    ; code
+    ; 0x41(A), 0x5a(Z)
+    and rdi, 0xFF
+    cmp rdi, 'A'
+    jl .no_action
+    cmp rdi, 'z'
+    jg .no_action
+    add rdi, 0x20
+
+    .no_action:
+    mov rax, rdi
+
     ; end of code
     mov rsp, rbp  ; Clean up the base pointer
     pop rbp  ; Restore the base pointer

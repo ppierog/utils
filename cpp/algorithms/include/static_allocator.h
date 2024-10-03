@@ -31,10 +31,16 @@ namespace utils
         static_assert(elementSize >= sizeof(int));
         static_assert(0 == (elementSize % sizeof(int)));
 
-        char *getMemory()
+        constexpr StaticMemoryProvideder() noexcept = default;
+        constexpr StaticMemoryProvideder(const StaticMemoryProvideder &) = delete;
+        constexpr StaticMemoryProvideder &operator=(const StaticMemoryProvideder &) = delete;
+
+        char *getMemory() const noexcept
         {
             return (char *)memory;
         }
+
+    private:
         int memory[(elementSize / sizeof(int)) * numObjects];
     };
 
@@ -117,32 +123,32 @@ namespace utils
             return 0;
         }
 
-        size_t allocatedSlots() const
+        size_t allocatedSlots() const noexcept
         {
             return memoryUsage.count();
         }
 
-        size_t freeSlots() const
+        size_t freeSlots() const noexcept
         {
             return memoryUsage.size() - memoryUsage.count();
         }
 
-        size_t getNumAllocs() const
+        size_t getNumAllocs() const noexcept
         {
             return numAllocs;
         }
 
-        size_t getNumDeallocs() const
+        size_t getNumDeallocs() const noexcept
         {
             return numDeallocs;
         }
 
-        constexpr const void *const getStartMemory() const
+        constexpr const void *const getStartMemory() const noexcept
         {
             return (const void *const)startMemory;
         }
 
-        constexpr const void *const getEndMemory() const
+        constexpr const void *const getEndMemory() const noexcept
         {
             return (const void *const)endMemory;
         }
@@ -179,6 +185,20 @@ namespace utils
         {
             T *ret = static_cast<T *>(pool.allocate());
             new (ret) T(&args...);
+            return ret;
+        }
+
+        T *create(const T &obj)
+        {
+            T *ret = static_cast<T *>(pool.allocate());
+            new (ret) T(obj);
+            return ret;
+        }
+
+        T *create(const T &&obj)
+        {
+            T *ret = static_cast<T *>(pool.allocate());
+            new (ret) T(std::move(obj));
             return ret;
         }
 
