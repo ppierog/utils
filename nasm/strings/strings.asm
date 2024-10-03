@@ -15,7 +15,10 @@ section .text
     global __atoi
     global __toupper
     global __tolower
-
+    global __isdigit
+    global __islower
+    global __isupper
+    global __isalpha
 
 ; char * itoa( int value, char * str, int base );
 ; rdi - number
@@ -261,12 +264,12 @@ __toupper :
     ; 0x61(a), 0x7a(z)
     and rdi, 0xFF
     cmp rdi, 'a'
-    jl .no_action
+    jl .end
     cmp rdi, 'z'
-    jg .no_action
+    jg .end
     sub rdi, 0x20
 
-    .no_action:
+    .end:
     mov rax, rdi
 
     ; end of code
@@ -286,12 +289,12 @@ __tolower :
     ; 0x41(A), 0x5a(Z)
     and rdi, 0xFF
     cmp rdi, 'A'
-    jl .no_action
+    jl .end
     cmp rdi, 'z'
-    jg .no_action
+    jg .end
     add rdi, 0x20
 
-    .no_action:
+    .end:
     mov rax, rdi
 
     ; end of code
@@ -299,3 +302,115 @@ __tolower :
     pop rbp  ; Restore the base pointer
 
     ret
+
+
+; int isdigit (int);
+; rdi - input character
+__isdigit :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    xor rax, rax
+    ; code
+    ; 0x30(0), 0x39(9)
+    and rdi, 0xFF
+    cmp rdi, '0'
+    jl .end
+    cmp rdi, '9'
+    jg .end
+    mov rax, 1
+
+    .end:
+    mov rax, rdi
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+
+; int islower (int);
+; rdi - input character
+__islower :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    xor rax, rax
+    ; code
+    ; 0x61(a), 0x7a(z)
+    and rdi, 0xFF
+    cmp rdi, 'a'
+    jl .end
+    cmp rdi, 'z'
+    jg .end
+    mov rax, 1
+
+    .end:
+    mov rax, rdi
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+; int isupper (int);
+; rdi - input character
+__isupper :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    xor rax, rax
+    ; code
+    ; 0x61(a), 0x7a(z)
+    and rdi, 0xFF
+    cmp rdi, 'A'
+    jl .end
+    cmp rdi, 'Z'
+    jg .end
+    mov rax, 1
+
+    .end:
+    mov rax, rdi
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+; int isalpha (int);
+; rdi - input character
+__ialpha :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    push rdi
+    call __islower
+    pop rdi
+
+    push rdi     ;
+    push rax     ; push islower
+    call __isupper
+
+    mov r15, rax ; isupper
+    pop rax      ; islower
+    pop rdi
+    mov r8, rax
+    and r15, 0xFF
+    and r8, 0xFF
+    or r15, r8
+
+    mov rax, r15
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
