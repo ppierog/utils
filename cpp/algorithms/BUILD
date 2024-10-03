@@ -16,6 +16,12 @@ cc_library(
     copts = ["-Ialgorithms/include"],
 )
 
+cc_library(
+    name = "meta",
+    hdrs = ["include/meta.h"],
+    copts = ["-Ialgorithms/include"],
+)
+
 
 cc_test(
     name = "static-allocator-test",
@@ -33,7 +39,7 @@ cc_test(
     name = "bitset-test",
     size = "small",
     srcs = ["test/bitset_test.cpp"],
-    copts = ["-Ialgorithms/include", "-DUTILS_EXCEPTIONS=1"],
+    copts = ["-Ialgorithms/include"],
     deps = [
         "@googletest//:gtest",
         "@googletest//:gtest_main",
@@ -45,10 +51,22 @@ cc_test(
     name = "array-test",
     size = "small",
     srcs = ["test/array_test.cpp"],
-    copts = ["-Ialgorithms/include", "-DUTILS_EXCEPTIONS=1"],
+    copts = ["-Ialgorithms/include"],
     deps = [
         "@googletest//:gtest",
         "@googletest//:gtest_main",
         ":array",
+    ],
+)
+
+cc_test(
+    name = "meta-test",
+    size = "small",
+    srcs = ["test/meta_test.cpp"],
+    copts = ["-Ialgorithms/include"],
+    deps = [
+        "@googletest//:gtest",
+        "@googletest//:gtest_main",
+        ":meta",
     ],
 )
