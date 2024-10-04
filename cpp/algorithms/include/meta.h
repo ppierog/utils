@@ -38,4 +38,17 @@ namespace utils
         return 1;
     }
 
+    template <size_t Size>
+    struct BitMaskWindow
+    {
+        static_assert(Size > 0, "Size must be grather than 0");
+        static_assert(Size <= sizeof(unsigned int) * 8, "Size must be less than or equal to sizeof(unsigned int)*8");
+        static constexpr const int &mask = (0x1 << (Size - 1)) | BitMaskWindow<Size - 1>::mask;
+    };
+    template <>
+    struct BitMaskWindow<1>
+    {
+        static constexpr const int &mask = 0x01;
+    };
+
 } // namespace utils
