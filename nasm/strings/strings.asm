@@ -19,6 +19,8 @@ section .text
     global __islower
     global __isupper
     global __isalpha
+    global __isalnum
+    global __isspace
 
 ; char * itoa( int value, char * str, int base );
 ; rdi - number
@@ -414,3 +416,72 @@ __ialpha :
 
     ret
 
+; int isalnum(int);
+; rdi - input character
+__ialnum :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    push rdi
+    call __ialpha
+    cmp rax, 1
+    je .hit_end
+
+    pop rdi
+    call __isdigit
+    cmp rax, 1
+    jne .end
+
+    .hit_end:
+    mov rax, 0x1
+
+    .end:
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
+
+; int isspace (int);
+; rdi - input character
+__isspace :
+
+    push rbp       ; Save the base pointer
+    mov rbp, rsp   ; Set up the new base pointer
+
+    xor rax, rax
+    ; code
+
+    and rdi, 0xFF
+
+    cmp rdi, 0x20 ;space
+    je .hit_end
+
+    cmp rdi, 0x09 ;tab
+    je .hit_end
+
+    cmp rdi, 0x0A ;newline
+    je .hit_end
+
+    cmp rdi, 0x0B ;vert tab
+    je .hit_end
+
+    cmp rdi, 0x0C ;form feed
+    je .hit_end
+
+    cmp rdi, 0x0D ;carrigae
+    je .hit_end
+
+    xor rax, rax ; not needed ?
+    je .end
+
+    .hit_end:
+    mov rax, 1
+    .end:
+
+    ; end of code
+    mov rsp, rbp  ; Clean up the base pointer
+    pop rbp  ; Restore the base pointer
+
+    ret
